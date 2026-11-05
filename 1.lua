@@ -7373,7 +7373,6 @@ end
 if _G.NTH_HasShownLoginMsg == nil then
   _G.NTH_HasShownLoginMsg = false
 end
-
 pcall(function()
   FeedbackSystem.Install()
 end)
