@@ -1,10 +1,57 @@
+
+-- ============================================================
+-- LUA EXPIRY SETTINGS
+-- Change these values to set your own expiry date/time.
+-- Format: YEAR, MONTH, DAY, HOUR, MINUTE, SECOND
+-- ============================================================
+local EXPIRY_YEAR   = 2026
+local EXPIRY_MONTH  = 11
+local EXPIRY_DAY    = 20
+local EXPIRY_HOUR   = 23
+local EXPIRY_MINUTE = 59
+local EXPIRY_SECOND = 59
+
+local function IsLuaExpired()
+    local now = os.date("*t")
+    if not now then return false end
+
+    if now.year ~= EXPIRY_YEAR then return now.year > EXPIRY_YEAR end
+    if now.month ~= EXPIRY_MONTH then return now.month > EXPIRY_MONTH end
+    if now.day ~= EXPIRY_DAY then return now.day > EXPIRY_DAY end
+    if now.hour ~= EXPIRY_HOUR then return now.hour > EXPIRY_HOUR end
+    if now.min ~= EXPIRY_MINUTE then return now.min > EXPIRY_MINUTE end
+    return now.sec >= EXPIRY_SECOND
+end
+
+if IsLuaExpired() then
+    local expiryMessage = "Lua has been expired please renew your license OWNER_TELEGRAM_@SohailPG1"
+
+    -- Try common in-game notification APIs without breaking the script
+    -- if a particular runtime does not expose one.
+    pcall(function()
+        if type(ShowToast) == "function" then
+            ShowToast(expiryMessage)
+        elseif type(Toast) == "function" then
+            Toast(expiryMessage)
+        elseif type(ShowMessage) == "function" then
+            ShowMessage(expiryMessage)
+        elseif type(PrintMessage) == "function" then
+            PrintMessage(expiryMessage)
+        else
+            print(expiryMessage)
+        end
+    end)
+
+    return
+end
+-- ============================================================
+
 -- ========================================
 -- >>> WELCOME TO @SohailPG1 VIP MOD PAK FILE <<<
 -- =======================================
--- =======================================
 -- CREDIT: @SohailPG1 - PAKISTAN VIP MOD
 -- CONTACT: Telegram @SohailPG1
--- VERSION: 4.5 PAK EDITION (FIXED LICENSE SYSTEM)
+-- VERSION: 5.0 NO LICENSE - FULL FREE
 -- ========================================
 
 local BRPlayerCharacterBase = {
@@ -48,7 +95,6 @@ local GamePlayTools = require("GameLua.Mod.BaseMod.Common.GamePlayTools")
 local KismetSystemLibrary = import("KismetSystemLibrary")
 local packageName = KismetSystemLibrary.GetGameBundleId()
 
--- Support all game versions without returning
 local function GetGamePaths(pkg)
     local paths = {
         ["com.tencent.ig"] = {
@@ -97,125 +143,522 @@ end
 local currentGamePaths = GetGamePaths(packageName)
 
 -- ============================================================================
--- SohailPG1 ONLINE LICENSE SYSTEM (MIGRATED FROM Ahmad.lua)
--- All mod features remain hard-locked until the online key is verified.
+-- LICENSE SYSTEM REMOVED - MOD IS NOW 100% FREE
+-- All features unlocked. No key required. No login required.
 -- ============================================================================
 
--- 1. LICENSE CONFIG + CORE
--- ============================================================================
-local MasterLicenseConfig = (function()
+-- Stub functions so existing code does not break
+local function BRLicenseActive()
+    return true
+end
+
+local function BRLicenseMaintenance()
+    return true
+end
+
+function _G.MasterLicenseLogin(key)
+    return true, "unlocked"
+end
+
+function _G.MasterLicenseLogout()
+    return true
+end
+
+function _G.MasterLicenseStatus()
     return {
-              url = 'https://SohailPG1/connect', game = 'BGMI',
-        timeout = 10, clockSkew = 120, expiryPath = nil,
-        manualExpiry = "2026-12-31 23:59:59", tamperTolerance = 5,
-        secret = 'ZAKPUBGSKIN',
+        authorized = true,
+        phase = "active",
+        message = "License system removed - FULL FREE ACCESS"
     }
-end)()
+end
 
-local MasterLicenseCore = (function()
-    local Primitives = (function()
-        local floor, abs, max = math.floor, math.abs, math.max
-        local byte, char, format = string.byte, string.char, string.format
-        local U32 = 4294967296
-        local AND, XOR = {}, {}
-        for a = 0, 15 do for b = 0, 15 do
-            local av, bv, both, different, place = a, b, 0, 0, 1
-            for _ = 1, 4 do
-                local x, y = av % 2, bv % 2
-                if x == 1 and y == 1 then both = both + place end
-                if x ~= y then different = different + place end
-                av, bv, place = floor(av / 2), floor(bv / 2), place * 2
-            end
-            AND[a * 16 + b], XOR[a * 16 + b] = both, different
-        end end
-        local function bitop(a, b, lookup)
-            local value, place = 0, 1
-            for _ = 1, 8 do
-                value = value + lookup[(a % 16) * 16 + b % 16] * place
-                a, b, place = floor(a / 16), floor(b / 16), place * 16
-            end
-            return value
+function BRPlayerCharacterBase:SubmitESPKey(key)
+    return true
+end
+
+function BRPlayerCharacterBase:LogoutESP()
+    return true
+end
+
+function BRPlayerCharacterBase:GetESPStatus()
+    return {
+        state = "active",
+        license = { authorized = true, phase = "active" }
+    }
+end
+
+local function Notify(msg)
+    local s = "[SohailPG1] " .. tostring(msg)
+    pcall(function()
+        if _G.GTLMODNotify then
+            _G.GTLMODNotify(s)
         end
-        local function band(a, b) return bitop(a, b, AND) end
-        local function bxor(a, b) return bitop(a, b, XOR) end
-        local function rol(value, amount)
-            local divisor = 2 ^ (32 - amount)
-            return (value % divisor) * 2 ^ amount + floor(value / divisor)
+    end)
+    pcall(function()
+        local sh = import("ScriptHelperClient")
+        if sh and sh.AddOnScreenDebugMessage then
+            sh.AddOnScreenDebugMessage(
+                s, -1, 3.0,
+                {R=1, G=1, B=0, A=1},
+                {X=1.2, Y=1.2}
+            )
         end
-        local function little32(value)
-            return char(value % 256, floor(value / 256) % 256,
-                floor(value / 65536) % 256, floor(value / 16777216) % 256)
+    end)
+    print(s)
+end
+
+local isExpired = false
+
+BRPlayerCharacterBase.ServerRPC.RPC_Server_ReportSimulateCharacterLocation = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ClientRPC.RPC_Client_ShootVertifyRes = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ClientRPC.RPC_ClientCoronaLab = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ServerRPC.RPC_Server_ReportPlayerKillFlow = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ServerRPC.RPC_Server_ClientSecMrpcsFlow = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ServerRPC.RPC_Server_Heartbeat = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ServerRPC.RPC_Server_SwiftHawk = { Reliable = true, Params = {} }
+BRPlayerCharacterBase.ServerRPC.RPC_Server_ClientSwiftHawkWithParams = { Reliable = true, Params = {} }
+local ENetRole = import("ENetRole")
+local EPawnState = import("EPawnState")
+local GameplayData = require("GameLua.GameCore.Data.GameplayData")
+local GamePlayTools = require("GameLua.Mod.BaseMod.Common.GamePlayTools")
+
+function BRPlayerCharacterBase:ctor()
+end
+
+function BRPlayerCharacterBase:_PostConstruct()
+  BRPlayerCharacterBase.__super._PostConstruct(self)
+  self:InitAddSpecialMoveInfo()
+  self.bCanNearDeathGiveup = true
+  print(bWriteLog and "BRPlayerCharacterBase:_PostConstruct bCanNearDeathGiveup true")
+end
+
+function BRPlayerCharacterBase:ReceiveBeginPlay()
+  BRPlayerCharacterBase.__super.ReceiveBeginPlay(self)
+  self:AddControlEvent(self, "MovementModeChangedDelegate", self.HandleOnMovementModeChangedNew, self)
+  if self:HasAuthority() and self:CheckAddCheckFallingDistanceComponent() then
+    local CheckFallingDistanceComponent_C = import("CheckFallingDistanceComponent")
+    if slua.isValid(CheckFallingDistanceComponent_C) and not slua.isValid(self:GetComponentByClass(CheckFallingDistanceComponent_C)) then
+      print(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay Add CheckFallingDistanceComponent")
+      Game:AddComponent(CheckFallingDistanceComponent_C, self, "CheckFallingDistanceComponent")
+    end
+  end
+  if slua.isValid(self.STCharacterMovement) then
+    self.STCharacterMovement.bPositiveBlowUp = true
+  end
+  if self.Role == ENetRole.ROLE_AutonomousProxy then
+    self:AddControlEvent(self, "OnPawnStateDisabled", self.OnPawnStateChange, self)
+    self:AddControlEvent(self, "OnPawnStateEnabled", self.OnPawnStateChange, self)
+    self:AddControlEventConditionOnly(self, "OnAttrChangeEventDelegate", {
+      AttrName = {
+        "bCanSelfRescue"
+      }
+    }, self.CharacterAttrChangeEvent, self)
+  end
+  if Client then
+    printf(bWriteLog and "BRPlayerCharacterBase:ReceiveBeginPlay, PlayerKey:%u ", self.PlayerKey)
+    GameplayData.AddCharacter(self.Object)
+    self:AddControlEvent(self, "OnAttachedToVehicle", self.HandleOnAttachedToVehicle, self)
+    self:AddControlEvent(self, "OnDetachedFromVehicle", self.HandleOnDetachedFromVehicle, self)
+  else
+    self:AddCommonEventWithConditions(EVENTTYPE_INGAME_NORMAL, EVENTID_GAME_MODE_STATE_CHANGE, {
+      [1] = "FinishedState"
+    }, self.HandleFinishedState, self)
+  end
+end
+
+function BRPlayerCharacterBase:HandleOnAttachedToVehicle(uVehicle)
+  if not slua.isValid(uVehicle) then
+    return
+  end
+  print(bWriteLog and string.format("BRPlayerCharacterBase:HandleOnAttachedToVehicle", Game:GetObjName(uVehicle)))
+  if self.Role == ENetRole.ROLE_SimulatedProxy then
+    self:ClearAttachToVehicleTimer()
+    self.nUpdatePlayerAttachToVehicleCount = 0
+    self.nUpdatePlayerAttachToVehicleTimer = self:AddGameTimer(5, true, 
+function()
+      if slua.isValid(self.Object) and slua.isValid(uVehicle) then
+        self:UpdatePlayerAttachToVehicle(uVehicle)
+      end
+    end)
+    self.nFixMeshContainerTimer = self:AddGameTimer(3, true, 
+function()
+      if slua.isValid(self.Object) and slua.isValid(uVehicle) then
+        self:FixMeshContainerOffsetIfNeeded(uVehicle)
+      end
+    end)
+  end
+end
+
+function BRPlayerCharacterBase:HandleOnDetachedFromVehicle(uLastVehicle)
+  if not slua.isValid(uLastVehicle) then
+    return
+  end
+  print(bWriteLog and "BRPlayerCharacterBase:HandleOnDetachedFromVehicle", uLastVehicle)
+  if self.Role == ENetRole.ROLE_SimulatedProxy then
+    self:ClearAttachToVehicleTimer()
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+end
+
+function BRPlayerCharacterBase:UpdatePlayerAttachToVehicle(uVehicle)
+  if not slua.isValid(self.Object) or not slua.isValid(uVehicle) then
+    return
+  end
+  if not slua.isValid(self.CapsuleComponent) or not slua.isValid(self.Mesh) or not slua.isValid(self.MeshContainer) then
+    return
+  end
+  if not slua.isValid(self:GetCurrentVehicle()) then
+    return
+  end
+  if Game:IsDriver(self.Object) then
+    return
+  end
+  if not self.nUpdatePlayerAttachToVehicleCount then
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+  local ESTEPoseState = import("ESTEPoseState")
+  local bStand = self.PoseState == ESTEPoseState.Stand
+  local uActorRelativeLocation = self.CapsuleComponent:GetRelativeTransform():GetLocation()
+  local uMeshRelativeLocation = self.Mesh:GetRelativeTransform():GetLocation()
+  local uMeshContainerRelativeLocationZ = self.MeshContainer:GetRelativeTransform():GetLocation().Z
+  local nCapsuleRadius = self.CapsuleComponent:GetScaledCapsuleRadius()
+  local nCapsuleHalfHeight = self.CapsuleComponent:GetScaledCapsuleHalfHeight()
+  local uMeshContainerExpectedZ = -1 * self.StandHalfHeight
+  local nExpectedCapsuleRadius = self.StandRadius
+  local nExpectedCapsuleHalfHeight = self.StandHalfHeight
+  local uMeshExpectedRL = FVector(0, 0, 0)
+  local uActorExpectedRL = FVector(0, 0, self.StandHalfHeight)
+  local nTolerance = 1.0
+  local bCapsuleRLCorrect = uActorRelativeLocation:Equals(uActorExpectedRL, nTolerance)
+  local bMeshRLCorrect = uMeshRelativeLocation:Equals(uMeshExpectedRL, nTolerance)
+  local bMeshContainerRLCorrect = nTolerance > math.abs(uMeshContainerRelativeLocationZ - uMeshContainerExpectedZ)
+  local bCapsuleRadiusCorrect = nTolerance > math.abs(nCapsuleRadius - nExpectedCapsuleRadius)
+  local bCapsuleHalfHeightCorrect = nTolerance > math.abs(nCapsuleHalfHeight - nExpectedCapsuleHalfHeight)
+  local bAllCorrect = bStand and bCapsuleRLCorrect and bMeshRLCorrect and bMeshContainerRLCorrect and bCapsuleRadiusCorrect and bCapsuleHalfHeightCorrect
+  if not bAllCorrect then
+    self.nUpdatePlayerAttachToVehicleCount = self.nUpdatePlayerAttachToVehicleCount + 1
+  else
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+  print(bWriteLog and string.format("BRPlayerCharacterBase:UpdatePlayerAttachToVehicle PlayerKey:%s. bAllCorrect=%s Check Result:%d %d %d %d %d %d, Count:%d", tostring(self.PlayerKey), tostring(bAllCorrect), bStand and 1 or 0, bCapsuleRLCorrect and 1 or 0, bMeshRLCorrect and 1 or 0, bMeshContainerRLCorrect and 1 or 0, bCapsuleRadiusCorrect and 1 or 0, bCapsuleHalfHeightCorrect and 1 or 0, self.nUpdatePlayerAttachToVehicleCount))
+  if self.nUpdatePlayerAttachToVehicleCount >= 3 and not bAllCorrect then
+    local GameplayData = require("GameLua.GameCore.Data.GameplayData")
+    local uPlayerController = GameplayData.GetPlayerController()
+    if uPlayerController.ReportCrashKitFeature and uPlayerController.ReportCrashKitFeature.ReportCharacterAttachedOnVehicleException then
+      local sReportInfo = string.format("VehicleShapeType:%s PlayerKey:%s. Check Result:%d %d %d %d %d %d. Capsule.RelativeLoc:%s Capsule.Radius:%s Capsule.HalfHeight:%s Mesh.RelativeLoc:%s MeshContainer.RelativeLocZ:%s", tostring(uVehicle.VehicleShapeType), tostring(self.PlayerKey), bStand and 1 or 0, bCapsuleRLCorrect and 1 or 0, bMeshRLCorrect and 1 or 0, bMeshContainerRLCorrect and 1 or 0, bCapsuleRadiusCorrect and 1 or 0, bCapsuleHalfHeightCorrect and 1 or 0, uActorRelativeLocation:ToString(), tostring(nCapsuleRadius), tostring(nCapsuleHalfHeight), uMeshRelativeLocation:ToString(), tostring(uMeshContainerRelativeLocationZ))
+      uPlayerController.ReportCrashKitFeature:ReportCharacterAttachedOnVehicleException(sReportInfo)
+    end
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+end
+
+function BRPlayerCharacterBase:FixMeshContainerOffsetIfNeeded(uVehicle)
+  if not slua.isValid(self.Object) or not slua.isValid(uVehicle) then
+    return
+  end
+  if not slua.isValid(self.MeshContainer) then
+    return
+  end
+  if not slua.isValid(self:GetCurrentVehicle()) then
+    return
+  end
+  if Game:IsDriver(self.Object) then
+    return
+  end
+  local nTolerance = 1.0
+  local uMeshContainerExpectedZ = -1 * self.StandHalfHeight
+  local uMeshContainerRelativeLocationZ = self.MeshContainer:GetRelativeTransform():GetLocation().Z
+  if nTolerance <= math.abs(uMeshContainerRelativeLocationZ - uMeshContainerExpectedZ) then
+    print(bWriteLog and string.format("BRPlayerCharacterBase:FixMeshContainerOffsetIfNeeded PlayerKey:%s. SetMeshContainerOffsetZ from:%s to:%s", tostring(uMeshContainerExpectedZ), tostring(uMeshContainerExpectedZ)))
+    self:SetMeshContainerOffsetZ(uMeshContainerExpectedZ)
+  end
+end
+
+function BRPlayerCharacterBase:ClearAttachToVehicleTimer()
+  if self.nUpdatePlayerAttachToVehicleTimer then
+    self:RemoveGameTimer(self.nUpdatePlayerAttachToVehicleTimer)
+    self.nUpdatePlayerAttachToVehicleTimer = nil
+  end
+  if self.nFixMeshContainerTimer then
+    self:RemoveGameTimer(self.nFixMeshContainerTimer)
+    self.nFixMeshContainerTimer = nil
+  end
+end
+
+function BRPlayerCharacterBase:CharacterAttrChangeEvent(uPawn, AttrName, AttrVal)
+  BRPlayerCharacterBase.__super.CharacterAttrChangeEvent(self, uPawn, AttrName, AttrVal)
+  if self.Object ~= uPawn then
+    return
+  end
+  if self.Role == ENetRole.ROLE_AutonomousProxy and AttrName == "bCanSelfRescue" then
+    local uPlayerController = self:GetPlayerControllerSafety()
+    if slua.isValid(uPlayerController) then
+      uPlayerController:BroadcastUIMessage("UIMsg_CanSelfRescue", 0, "", "")
+    end
+  end
+end
+
+function BRPlayerCharacterBase:OnPawnStateChange(PawnState)
+  print("BRPlayerCharacterBase:OnPawnStateChange:", PawnState)
+  local EPawnState = import("EPawnState")
+  if PawnState == EPawnState.SwitchPP then
+    local uPlayerController = self:GetPlayerControllerSafety()
+    if slua.isValid(uPlayerController) then
+      uPlayerController:BroadcastUIMessage("UIMsg_FPPModeChange", 0, "", "")
+    end
+  end
+end
+
+function BRPlayerCharacterBase:HandleFinishedState()
+  print(bWriteLog and "BRPlayerCharacterBase:HandleFinishedState", self.STCharacterMovement)
+  if slua.isValid(self.STCharacterMovement) and self.STCharacterMovement.SetDynamicSimpleQueryConfig then
+    self.STCharacterMovement:SetDynamicSimpleQueryConfig(false)
+  end
+end
+
+function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
+  if CGameMode and CGameMode.GameModeType and CGameState and CGameState.GameModeID then
+    local EGameModeType = import("EGameModeType")
+    local MatchModeIds = require("GameLua.Mod.BaseMod.GamePlay.Config.MatchModeIdsConfig")
+    local GameModeType = CGameMode.GameModeType
+    local GameModeID = tonumber(CGameState.GameModeID)
+    local bModeTypeSatisfy = GameModeType == EGameModeType.ETypicalGameMode or GameModeType == EGameModeType.EFourInOneGameMode or GameModeType == EGameModeType.EHeavyWeaponGameMode
+    local bModeIDSatisfy = not MatchModeIds[GameModeID]
+    print(bWriteLog and "BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent:", GameModeType, GameModeID, bModeTypeSatisfy, bModeIDSatisfy)
+    return bModeTypeSatisfy and bModeIDSatisfy
+  end
+  return false
+end
+
+function BRPlayerCharacterBase:LuaHandleParachuteStateChanged(LastParachuteState, NewParachuteState)
+  BRPlayerCharacterBase.__super.LuaHandleParachuteStateChanged(self, LastParachuteState, NewParachuteState)
+  local EParachuteState = import("EParachuteState")
+  if not Client then
+    local uCurrentPlayerControl = self:GetPlayerControllerSafety()
+    if slua.isValid(uCurrentPlayerControl) and uCurrentPlayerControl.CheckParachuteOpenFeature then
+      if NewParachuteState == EParachuteState.PS_Opening then
+        if uCurrentPlayerControl.CheckParachuteOpenFeature.SatrtCheckShowParachuteCloseUI then
+          uCurrentPlayerControl.CheckParachuteOpenFeature:SatrtCheckShowParachuteCloseUI()
         end
-        local K = {
-            0xd76aa478,0xe8c7b756,0x242070db,0xc1bdceee,0xf57c0faf,0x4787c62a,0xa8304613,0xfd469501,
-            0x698098d8,0x8b44f7af,0xffff5bb1,0x895cd7be,0x6b901122,0xfd987193,0xa679438e,0x49b40821,
-            0xf61e2562,0xc040b340,0x265e5a51,0xe9b6c7aa,0xd62f105d,0x02441453,0xd8a1e681,0xe7d3fbc8,
-            0x21e1cde6,0xc33707d6,0xf4d50d87,0x455a14ed,0xa9e3e905,0xfcefa3f8,0x676f02d9,0x8d2a4c8a,
-            0xfffa3942,0x8771f681,0x6d9d6122,0xfde5380c,0xa4beea44,0x4bdecfa9,0xf6bb4b60,0xbebfbc70,
-            0x289b7ec6,0xeaa127fa,0xd4ef3085,0x04881d05,0xd9d4d039,0xe6db99e5,0x1fa27cf8,0xc4ac5665,
-            0xf4292244,0x432aff97,0xab9423a7,0xfc93a039,0x655b59c3,0x8f0ccc92,0xffeff47d,0x85845dd1,
-            0x6fa87e4f,0xfe2ce6e0,0xa3014314,0x4e0811a1,0xf7537e82,0xbd3af235,0x2ad7d2bb,0xeb86d391
-        }
-        local SHIFT = {7,12,17,22,5,9,14,20,4,11,16,23,6,10,15,21}
-        local function md5_raw(input)
-            assert(type(input) == "string", "MD5 input must be a string")
-            local size = #input
-            local message = input .. char(128) .. string.rep(char(0), (55 - size) % 64)
-                .. little32((size * 8) % U32) .. little32(floor(size / 536870912))
-            local h0, h1, h2, h3 = 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476
-            local words = {}
-            for offset = 1, #message, 64 do
-                for j = 0, 15 do
-                    local a, b, c, d = byte(message, offset + j * 4, offset + j * 4 + 3)
-                    words[j] = a + b * 256 + c * 65536 + d * 16777216
-                end
-                local a, b, c, d = h0, h1, h2, h3
-                for i = 0, 63 do
-                    local f, g, shiftBase
-                    if i < 16 then
-                        f, g, shiftBase = band(b, c) + band(U32 - 1 - b, d), i, 0
-                    elseif i < 32 then
-                        f, g, shiftBase = band(d, b) + band(U32 - 1 - d, c), (5 * i + 1) % 16, 4
-                    elseif i < 48 then
-                        f, g, shiftBase = bxor(bxor(b, c), d), (3 * i + 5) % 16, 8
-                    else
-                        local bOrNotD = U32 - 1 - band(U32 - 1 - b, d)
-                        f, g, shiftBase = bxor(c, bOrNotD), (7 * i) % 16, 12
-                    end
-                    local nextB = (b + rol((a + f + K[i + 1] + words[g]) % U32,
-                        SHIFT[shiftBase + i % 4 + 1])) % U32
-                    a, b, c, d = d, nextB, b, c
-                end
-                h0, h1, h2, h3 = (h0 + a) % U32, (h1 + b) % U32, (h2 + c) % U32, (h3 + d) % U32
-            end
-            return little32(h0) .. little32(h1) .. little32(h2) .. little32(h3)
+      elseif NewParachuteState == EParachuteState.PS_None then
+        if uCurrentPlayerControl.CheckParachuteOpenFeature.RecoverParachuteOpenParam then
+          uCurrentPlayerControl.CheckParachuteOpenFeature:RecoverParachuteOpenParam()
         end
-        local function hex(input)
-            return (input:gsub(".", function(c) return format("%02x", byte(c)) end))
+        if uCurrentPlayerControl.CheckParachuteOpenFeature.ClearTimerAndState then
+          uCurrentPlayerControl.CheckParachuteOpenFeature:ClearTimerAndState()
         end
-        local function md5(input) return hex(md5_raw(input)) end
-        local function form_encode(input)
-            assert(type(input) == "string", "Form value must be a string")
-            return (input:gsub("[^A-Za-z0-9%-%._~ ]", function(c)
-                return format("%%%02X", byte(c)) end):gsub(" ", "+"))
+      end
+    end
+  end
+end
+
+function BRPlayerCharacterBase:OnLanded()
+  printf("BRPlayerCharacterBase:OnLanded PlayerKey:%d", self.PlayerKey)
+  if self.HandleOnLanded then
+    self:HandleOnLanded(-1)
+  end
+  if not Client then
+    local uCurrentPlayerControl = self:GetPlayerControllerSafety()
+    if slua.isValid(uCurrentPlayerControl) and uCurrentPlayerControl.CheckParachuteOpenFeature then
+      if uCurrentPlayerControl.CheckParachuteOpenFeature.ClearTimerAndState then
+        uCurrentPlayerControl.CheckParachuteOpenFeature:ClearTimerAndState()
+      end
+      if uCurrentPlayerControl.CheckParachuteOpenFeature.ResetCheckShowUI then
+        uCurrentPlayerControl.CheckParachuand string.format("BRPlayerCharacterBase:HandleOnAttachedToVehicle", Game:GetObjName(uVehicle)))
+  if self.Role == ENetRole.ROLE_SimulatedProxy then
+    self:ClearAttachToVehicleTimer()
+    self.nUpdatePlayerAttachToVehicleCount = 0
+    self.nUpdatePlayerAttachToVehicleTimer = self:AddGameTimer(5, true, 
+function()
+      if slua.isValid(self.Object) and slua.isValid(uVehicle) then
+        self:UpdatePlayerAttachToVehicle(uVehicle)
+      end
+    end)
+    self.nFixMeshContainerTimer = self:AddGameTimer(3, true, 
+function()
+      if slua.isValid(self.Object) and slua.isValid(uVehicle) then
+        self:FixMeshContainerOffsetIfNeeded(uVehicle)
+      end
+    end)
+  end
+end
+
+function BRPlayerCharacterBase:HandleOnDetachedFromVehicle(uLastVehicle)
+  if not slua.isValid(uLastVehicle) then
+    return
+  end
+  print(bWriteLog and "BRPlayerCharacterBase:HandleOnDetachedFromVehicle", uLastVehicle)
+  if self.Role == ENetRole.ROLE_SimulatedProxy then
+    self:ClearAttachToVehicleTimer()
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+end
+
+function BRPlayerCharacterBase:UpdatePlayerAttachToVehicle(uVehicle)
+  if not slua.isValid(self.Object) or not slua.isValid(uVehicle) then
+    return
+  end
+  if not slua.isValid(self.CapsuleComponent) or not slua.isValid(self.Mesh) or not slua.isValid(self.MeshContainer) then
+    return
+  end
+  if not slua.isValid(self:GetCurrentVehicle()) then
+    return
+  end
+  if Game:IsDriver(self.Object) then
+    return
+  end
+  if not self.nUpdatePlayerAttachToVehicleCount then
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+  local ESTEPoseState = import("ESTEPoseState")
+  local bStand = self.PoseState == ESTEPoseState.Stand
+  local uActorRelativeLocation = self.CapsuleComponent:GetRelativeTransform():GetLocation()
+  local uMeshRelativeLocation = self.Mesh:GetRelativeTransform():GetLocation()
+  local uMeshContainerRelativeLocationZ = self.MeshContainer:GetRelativeTransform():GetLocation().Z
+  local nCapsuleRadius = self.CapsuleComponent:GetScaledCapsuleRadius()
+  local nCapsuleHalfHeight = self.CapsuleComponent:GetScaledCapsuleHalfHeight()
+  local uMeshContainerExpectedZ = -1 * self.StandHalfHeight
+  local nExpectedCapsuleRadius = self.StandRadius
+  local nExpectedCapsuleHalfHeight = self.StandHalfHeight
+  local uMeshExpectedRL = FVector(0, 0, 0)
+  local uActorExpectedRL = FVector(0, 0, self.StandHalfHeight)
+  local nTolerance = 1.0
+  local bCapsuleRLCorrect = uActorRelativeLocation:Equals(uActorExpectedRL, nTolerance)
+  local bMeshRLCorrect = uMeshRelativeLocation:Equals(uMeshExpectedRL, nTolerance)
+  local bMeshContainerRLCorrect = nTolerance > math.abs(uMeshContainerRelativeLocationZ - uMeshContainerExpectedZ)
+  local bCapsuleRadiusCorrect = nTolerance > math.abs(nCapsuleRadius - nExpectedCapsuleRadius)
+  local bCapsuleHalfHeightCorrect = nTolerance > math.abs(nCapsuleHalfHeight - nExpectedCapsuleHalfHeight)
+  local bAllCorrect = bStand and bCapsuleRLCorrect and bMeshRLCorrect and bMeshContainerRLCorrect and bCapsuleRadiusCorrect and bCapsuleHalfHeightCorrect
+  if not bAllCorrect then
+    self.nUpdatePlayerAttachToVehicleCount = self.nUpdatePlayerAttachToVehicleCount + 1
+  else
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+  print(bWriteLog and string.format("BRPlayerCharacterBase:UpdatePlayerAttachToVehicle PlayerKey:%s. bAllCorrect=%s Check Result:%d %d %d %d %d %d, Count:%d", tostring(self.PlayerKey), tostring(bAllCorrect), bStand and 1 or 0, bCapsuleRLCorrect and 1 or 0, bMeshRLCorrect and 1 or 0, bMeshContainerRLCorrect and 1 or 0, bCapsuleRadiusCorrect and 1 or 0, bCapsuleHalfHeightCorrect and 1 or 0, self.nUpdatePlayerAttachToVehicleCount))
+  if self.nUpdatePlayerAttachToVehicleCount >= 3 and not bAllCorrect then
+    local GameplayData = require("GameLua.GameCore.Data.GameplayData")
+    local uPlayerController = GameplayData.GetPlayerController()
+    if uPlayerController.ReportCrashKitFeature and uPlayerController.ReportCrashKitFeature.ReportCharacterAttachedOnVehicleException then
+      local sReportInfo = string.format("VehicleShapeType:%s PlayerKey:%s. Check Result:%d %d %d %d %d %d. Capsule.RelativeLoc:%s Capsule.Radius:%s Capsule.HalfHeight:%s Mesh.RelativeLoc:%s MeshContainer.RelativeLocZ:%s", tostring(uVehicle.VehicleShapeType), tostring(self.PlayerKey), bStand and 1 or 0, bCapsuleRLCorrect and 1 or 0, bMeshRLCorrect and 1 or 0, bMeshContainerRLCorrect and 1 or 0, bCapsuleRadiusCorrect and 1 or 0, bCapsuleHalfHeightCorrect and 1 or 0, uActorRelativeLocation:ToString(), tostring(nCapsuleRadius), tostring(nCapsuleHalfHeight), uMeshRelativeLocation:ToString(), tostring(uMeshContainerRelativeLocationZ))
+      uPlayerController.ReportCrashKitFeature:ReportCharacterAttachedOnVehicleException(sReportInfo)
+    end
+    self.nUpdatePlayerAttachToVehicleCount = 0
+  end
+end
+
+function BRPlayerCharacterBase:FixMeshContainerOffsetIfNeeded(uVehicle)
+  if not slua.isValid(self.Object) or not slua.isValid(uVehicle) then
+    return
+  end
+  if not slua.isValid(self.MeshContainer) then
+    return
+  end
+  if not slua.isValid(self:GetCurrentVehicle()) then
+    return
+  end
+  if Game:IsDriver(self.Object) then
+    return
+  end
+  local nTolerance = 1.0
+  local uMeshContainerExpectedZ = -1 * self.StandHalfHeight
+  local uMeshContainerRelativeLocationZ = self.MeshContainer:GetRelativeTransform():GetLocation().Z
+  if nTolerance <= math.abs(uMeshContainerRelativeLocationZ - uMeshContainerExpectedZ) then
+    print(bWriteLog and string.format("BRPlayerCharacterBase:FixMeshContainerOffsetIfNeeded PlayerKey:%s. SetMeshContainerOffsetZ from:%s to:%s", tostring(uMeshContainerExpectedZ), tostring(uMeshContainerExpectedZ)))
+    self:SetMeshContainerOffsetZ(uMeshContainerExpectedZ)
+  end
+end
+
+function BRPlayerCharacterBase:ClearAttachToVehicleTimer()
+  if self.nUpdatePlayerAttachToVehicleTimer then
+    self:RemoveGameTimer(self.nUpdatePlayerAttachToVehicleTimer)
+    self.nUpdatePlayerAttachToVehicleTimer = nil
+  end
+  if self.nFixMeshContainerTimer then
+    self:RemoveGameTimer(self.nFixMeshContainerTimer)
+    self.nFixMeshContainerTimer = nil
+  end
+end
+
+function BRPlayerCharacterBase:CharacterAttrChangeEvent(uPawn, AttrName, AttrVal)
+  BRPlayerCharacterBase.__super.CharacterAttrChangeEvent(self, uPawn, AttrName, AttrVal)
+  if self.Object ~= uPawn then
+    return
+  end
+  if self.Role == ENetRole.ROLE_AutonomousProxy and AttrName == "bCanSelfRescue" then
+    local uPlayerController = self:GetPlayerControllerSafety()
+    if slua.isValid(uPlayerController) then
+      uPlayerController:BroadcastUIMessage("UIMsg_CanSelfRescue", 0, "", "")
+    end
+  end
+end
+
+function BRPlayerCharacterBase:OnPawnStateChange(PawnState)
+  print("BRPlayerCharacterBase:OnPawnStateChange:", PawnState)
+  local EPawnState = import("EPawnState")
+  if PawnState == EPawnState.SwitchPP then
+    local uPlayerController = self:GetPlayerControllerSafety()
+    if slua.isValid(uPlayerController) then
+      uPlayerController:BroadcastUIMessage("UIMsg_FPPModeChange", 0, "", "")
+    end
+  end
+end
+
+function BRPlayerCharacterBase:HandleFinishedState()
+  print(bWriteLog and "BRPlayerCharacterBase:HandleFinishedState", self.STCharacterMovement)
+  if slua.isValid(self.STCharacterMovement) and self.STCharacterMovement.SetDynamicSimpleQueryConfig then
+    self.STCharacterMovement:SetDynamicSimpleQueryConfig(false)
+  end
+end
+
+function BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent()
+  if CGameMode and CGameMode.GameModeType and CGameState and CGameState.GameModeID then
+    local EGameModeType = import("EGameModeType")
+    local MatchModeIds = require("GameLua.Mod.BaseMod.GamePlay.Config.MatchModeIdsConfig")
+    local GameModeType = CGameMode.GameModeType
+    local GameModeID = tonumber(CGameState.GameModeID)
+    local bModeTypeSatisfy = GameModeType == EGameModeType.ETypicalGameMode or GameModeType == EGameModeType.EFourInOneGameMode or GameModeType == EGameModeType.EHeavyWeaponGameMode
+    local bModeIDSatisfy = not MatchModeIds[GameModeID]
+    print(bWriteLog and "BRPlayerCharacterBase:CheckAddCheckFallingDistanceComponent:", GameModeType, GameModeID, bModeTypeSatisfy, bModeIDSatisfy)
+    return bModeTypeSatisfy and bModeIDSatisfy
+  end
+  return false
+end
+
+function BRPlayerCharacterBase:LuaHandleParachuteStateChanged(LastParachuteState, NewParachuteState)
+  BRPlayerCharacterBase.__super.LuaHandleParachuteStateChanged(self, LastParachuteState, NewParachuteState)
+  local EParachuteState = import("EParachuteState")
+  if not Client then
+    local uCurrentPlayerControl = self:GetPlayerControllerSafety()
+    if slua.isValid(uCurrentPlayerControl) and uCurrentPlayerControl.CheckParachuteOpenFeature then
+      if NewParachuteState == EParachuteState.PS_Opening then
+        if uCurrentPlayerControl.CheckParachuteOpenFeature.SatrtCheckShowParachuteCloseUI then
+          uCurrentPlayerControl.CheckParachuteOpenFeature:SatrtCheckShowParachuteCloseUI()
         end
-        local function constant_time_equal(a, b)
-            if type(a) ~= "string" or type(b) ~= "string" then return false end
-            local difference = abs(#a - #b)
-            for i = 1, max(#a, #b) do
-                difference = difference + abs((byte(a, i) or 0) - (byte(b, i) or 0))
-            end
-            return difference == 0
+      elseif NewParachuteState == EParachuteState.PS_None then
+        if uCurrentPlayerControl.CheckParachuteOpenFeature.RecoverParachuteOpenParam then
+          uCurrentPlayerControl.CheckParachuteOpenFeature:RecoverParachuteOpenParam()
         end
-        local function name_uuid(input)
-            local digest = md5_raw(input)
-            local h = hex(digest:sub(1,6) .. char(byte(digest,7) % 16 + 48)
-                .. digest:sub(8,8) .. char(byte(digest,9) % 64 + 128) .. digest:sub(10))
-            return h:sub(1,8) .. "-" .. h:sub(9,12) .. "-" .. h:sub(13,16)
-                .. "-" .. h:sub(17,20) .. "-" .. h:sub(21,32)
+        if uCurrentPlayerControl.CheckParachuteOpenFeature.ClearTimerAndState then
+          uCurrentPlayerControl.CheckParachuteOpenFeature:ClearTimerAndState()
         end
-        return {md5 = md5, md5_raw = md5_raw, form_encode = form_encode,
-                constant_time_equal = constant_time_equal, name_uuid = name_uuid}
+      end
+    end
+  end
+end
+
+function BRPlayerCharacterBase:OnLanded()
+  printf("BRPlayerCharacterBase:OnLanded PlayerKey:%d", self.PlayerKey)
+  if self.HandleOnLanded then
+    self:HandleOnLanded(-1)
+  end
+  if not Client then
+    local uCurrentPlayerControl = self:GetPlayerControllerSafety()
+    if slua.isValid(uCurrentPlayerControl) and uCurrentPlayerControl.CheckParachuteOpenFeature then
+      if uCurrentPlayerControl.CheckParachuteOpenFeature.ClearTimerAndState then
+        uCurrentPlayerControl.CheckParachuteOpenFeature:ClearTimerAndState()
+      end
+      if uCurrentPlayerControl.CheckParachuteOpenFeature.ResetCheckShowUI then
+        uCurrentPlayerControl.CheckParachu name_uuid = name_uuid}
     end)()
 
     local SESSION_KEY = '__MasterLicenseSession_v1'
